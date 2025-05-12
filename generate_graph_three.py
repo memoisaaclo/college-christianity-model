@@ -1,5 +1,4 @@
 import final_project_model
-
 import numpy as np
 import seaborn as sb
 import matplotlib.pyplot as plt
@@ -47,17 +46,20 @@ if __name__ == "__main__":
         ]
     ]
     A_labels = ["Homophily", "Heterophily", "STA Data"]
-
     start, end, steps = 0, 1, 50
     betas = np.linspace(start, end, steps)
     beta_rets = np.linspace(start, end, steps)
 
-    plt.figure(figsize=(10, 8))
+    # Create a figure with subplots: 2 rows (for elder efficacies) x 3 columns (for A matrices)
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+
+    # Store all results for consistent colorbar scale
+    all_results = []
+
+    # First pass: compute all results to find global min/max
     for idx_efficacy, B_step in enumerate(elder_efficacies):
         for idx_A, A in enumerate(As):
             results = np.zeros((steps, steps))
-
-            # Run simulations for each beta and beta_ret combination
             for i, beta in enumerate(betas):
                 for j, beta_ret in enumerate(beta_rets):
                     B = [[round(beta + B_step*(j - i), 3)
@@ -76,27 +78,50 @@ if __name__ == "__main__":
                     C_percent = np.sum(
                         model.results[-1][:, final_project_model.C_IDX])/4
                     results[i][j] = C_percent
+            all_results.append(results)
 
-            # put 0, 0 in the bottom left
+    # Find global min and max for consistent color scale
+    vmin = min(np.min(r) for r in all_results)
+    vmax = max(np.max(r) for r in all_results)
+
+    # Second pass: plot all results with consistent colorbar
+    result_idx = 0
+    for idx_efficacy, B_step in enumerate(elder_efficacies):
+        for idx_A, A in enumerate(As):
+            # Get the appropriate subplot
+            ax = axes[idx_efficacy, idx_A]
+
+            results = all_results[result_idx]
+            result_idx += 1
+
             results = np.flipud(results)
-            ax = sb.heatmap(results, cmap='viridis', cbar_kws={'label': 'Final C Percentage'})
 
-            # Set the correct tick positions
-            tick_positions = np.linspace(start, steps, 9)
-            tick_labels = np.round(np.linspace(start, end, 9), 2)
+            sb.heatmap(results, cmap='viridis', cbar=False,
+                       ax=ax, vmin=vmin, vmax=vmax)
 
-            # Set and format the axis ticks and labels
+            tick_positions = np.linspace(0, steps-1, 6)
+            tick_labels = np.round(np.linspace(start, end, 6), 2)
+
             ax.set_xticks(tick_positions)
             ax.set_xticklabels(tick_labels)
             ax.set_yticks(tick_positions)
             ax.set_yticklabels(np.flip(tick_labels))
 
-            # Add axis labels
-            ax.set_xlabel('Beta Ret (p_CS, p_DS)')
-            ax.set_ylabel('Beta (p_SC, p_SD)')
+            if idx_efficacy == 1:  # Only add x-labels to bottom row
+                ax.set_xlabel('Beta Ret (p_CS, p_DS)')
+            if idx_A == 0:  # Only add y-labels to leftmost column
+                ax.set_ylabel('Beta (p_SC, p_SD)')
 
-            # Add a descriptive title
-            plt.title(f'Final C Percentage: {A_labels[idx_A]} with Elder Efficacy {B_step}')
+            ax.set_title(f'{A_labels[idx_A]}, Elder Efficacy {B_step}')
 
-            plt.tight_layout()
-            plt.show()
+    # colorbar
+    # [left, bottom, width, height]
+    cbar_ax = fig.add_axes([0.15, 0.95, 0.7, 0.02])
+    sm = plt.cm.ScalarMappable(
+        cmap='viridis', norm=plt.Normalize(vmin=vmin, vmax=vmax))
+    sm.set_array([])
+    cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
+    cbar.set_label('Final C Percentage')
+
+    plt.subplots_adjust(top=0.9)  # Adjusted for colorbar and suptitle
+    plt.show()
