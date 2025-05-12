@@ -46,7 +46,13 @@ class DiscreteReligiousBeliefModel:
         p_SC = self.params.get('p_SC', 0.05)
         p_DS = self.params.get('p_DS', 0.05)
         p_SD = self.params.get('p_SD', 0.05)
-        alpha = self.params.get('alpha', [[0.25, 0.25, 0.25, 0.25] for _ in range(self.num_age_groups)])
+        A = self.params.get('A', [[0.25, 0.25, 0.25, 0.25] for _ in range(self.num_age_groups)])
+
+        # incoming distribution
+        fresh_C = self.initial_conditions.get('C_incoming', 1 / 3)
+        fresh_S = self.initial_conditions.get('S_incoming', 1 / 3)
+        fresh_D = self.initial_conditions.get('D_incoming', 1 / 3)
+
 
         for year in range(1, self.simulation_years + 1):
             new_state = np.zeros_like(self.state)
@@ -54,14 +60,6 @@ class DiscreteReligiousBeliefModel:
             # move students up a year
             for i in range(1, self.num_age_groups):
                 new_state[i] = self.state[i - 1]
-
-            # incoming distribution
-            fresh_C = self.initial_conditions.get('C_incoming',
-                                                  self.initial_conditions.get('C_1', 1 / 3))
-            fresh_S = self.initial_conditions.get('S_incoming',
-                                                  self.initial_conditions.get('S_1', 1 / 3))
-            fresh_D = self.initial_conditions.get('D_incoming',
-                                                  self.initial_conditions.get('D_1', 1 / 3))
 
             # normalize
             total = fresh_C + fresh_S + fresh_D
@@ -76,31 +74,26 @@ class DiscreteReligiousBeliefModel:
                 S = new_state[i, 1]
                 D = new_state[i, 2]
 
-                # stubbornness factor
-                stub = 1.00**i
-
-                C_to_S = C * p_CS * stub
+                C_to_S = C * p_CS
                 S_to_C = 0
                 for j in range(self.num_age_groups):
-                    S_to_C += S * new_state[j, 0] * alpha[i][j] * p_SC
+                    S_to_C += S * new_state[j, 0] * A[i][j] * p_SC
 
                 S_to_D = S * p_SD
-                D_to_S = D * p_DS * stub
+                D_to_S = D * p_DS
 
                 # update
                 new_state[i, 0] = C - C_to_S + S_to_C  # Christian
                 new_state[i, 1] = S - S_to_C - S_to_D + C_to_S + D_to_S  # Susceptible
                 new_state[i, 2] = D - D_to_S + S_to_D  # Denying
 
-                # no negatives due from floating point
+                # no negatives from floating point
                 new_state[i] = np.maximum(new_state[i], 0)
 
                 new_state[i] = new_state[i] / np.sum(new_state[i])
 
-            # Update the state
+            # update and store the state
             self.state = new_state
-
-            # Store the state for this year
             self.results['states'][year] = self.state.copy()
 
         return self.results
@@ -162,17 +155,29 @@ class DiscreteReligiousBeliefModel:
 
 
 if __name__ == "__main__":
+    B_step = 0.025
+    beta = 0.20
+    beta_ret = 0.05
+
+    # for beta 0.20 and B_step 0.025 B looks like:
+    # [[0.2, 0.225, 0.25, 0.275],
+    #  [0.175, 0.2, 0.225, 0.25],
+    #  [0.15, 0.175, 0.2, 0.225],
+    #  [0.125, 0.15, 0.175, 0.2]]
+    B = [[round(beta + B_step*(j - i), 3) for j in range(4)] for i in range(4)]
+
     parameters = {
-        'p_CS': 0.05,
-        'p_SC': 0.20,
-        'p_DS': 0.05,
-        'p_SD': 0.20,
-        'alpha': [
+        'p_SC': beta,
+        'p_CS': beta_ret,
+        'p_SD': beta,
+        'p_DS': beta_ret,
+        'A': [
             [0.5, 0.5/3, 0.5/3, 0.5/3],
             [0.5/3, 0.5, 0.5/3, 0.5/3],
             [0.5/3, 0.5/3, 0.5, 0.5/3],
             [0.5/3, 0.5/3, 0.5/3, 0.5]
         ],
+        'B': B
     }
 
     initial_conditions = {
@@ -200,4 +205,3 @@ if __name__ == "__main__":
     model = DiscreteReligiousBeliefModel(parameters, initial_conditions, simulation_years=10)
     model.run_simulation()
     model.plot_results()
-    # look for single
