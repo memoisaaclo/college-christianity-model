@@ -43,7 +43,8 @@ class DiscreteReligiousBeliefModel:
         p_SC = self.params.get('p_SC', 0.05)
         p_DS = self.params.get('p_DS', 0.05)
         p_SD = self.params.get('p_SD', 0.05)
-        A = self.params.get('A', [[0.25, 0.25, 0.25, 0.25] for _ in range(self.num_age_groups)])
+        A = np.array(self.params.get('A', [[0.25, 0.25, 0.25, 0.25] for _ in range(self.num_age_groups)]))
+        B = np.array(self.params.get('B', [[p_SC for _ in range(self.num_age_groups)] for _ in range(self.num_age_groups)]))
 
         # incoming distribution
         fresh_C = self.initial_conditions.get('C_incoming', 1 / 3)
@@ -64,10 +65,11 @@ class DiscreteReligiousBeliefModel:
             S = new_state[:, S_IDX]
             D = new_state[:, D_IDX]
 
-            C_to_S = C * p_CS
-            S_to_D = S * p_SD
-            D_to_S = D * p_DS
-            S_to_C = S * np.dot(A, C) * p_SC
+            combined_influence = A * B
+            S_to_C = S * np.dot(combined_influence, C) * p_SC
+            C_to_S = C * D * S * p_CS
+            S_to_D = D * S * p_SD
+            D_to_S = C * D * S * p_DS
 
             # update
             new_state[:, C_IDX] = C - C_to_S + S_to_C
