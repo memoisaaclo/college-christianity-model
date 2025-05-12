@@ -113,7 +113,7 @@ class DiscreteReligiousBeliefModel:
         plt.grid(True)
         plt.ylim(0, 1.0)
 
-        compartments = ['Christian (C)', 'Susceptible (S)', 'Denying (D)']
+        compartments = ['Confessing (C)', 'Searching (S)', 'Denying (D)']
         colors = ['b', 'g', 'r', 'y']
 
         for c_idx, compartment in enumerate(compartments):
@@ -134,7 +134,7 @@ class DiscreteReligiousBeliefModel:
         # stacked area chart
         plt.figure(figsize=(12, 6))
         plt.stackplot(years, total_C, total_S, total_D,
-                      labels=['Christian (C)', 'Susceptible (S)', 'Denying (D)'],
+                      labels=['Confessing (C)', 'Searching (S)', 'Denying (D)'],
                       colors=['b', 'g', 'r'], alpha=0.7)
         plt.xlabel('Years')
         plt.ylabel('Population Proportion')
@@ -232,58 +232,3 @@ if __name__ == "__main__":
     model.run_simulation()
     model.plot_results()
 
-    # find how many SS there are
-    B_steps = [0, .025, .05]
-    homophilies = [.1, .25, .4, 1]
-    betas = np.linspace(0, 1, 10)
-    beta_rets = np.linspace(0, 1, 10)
-    C_restock_rates = np.linspace(0, .5, 10)
-
-    Cs = []
-    for B_step in B_steps:
-        for beta in betas:
-            for beta_ret in beta_rets:
-                for homophily in homophilies:
-                    for C_restock_rate in C_restock_rates:
-                        B = np.array([[round(beta + B_step*(j - i), 3) for j in range(4)] for i in range(4)])
-                        A = np.array([[homophily if i == j else heterophily for j in range(4)] for i in range(4)])
-                        D_restock_rate = C_restock_rate
-                        S_restock_rate = 1 - C_restock_rate - D_restock_rate
-
-                        if S_restock_rate < 0 or (A < 0).any() or (B < 0).any():
-                            continue
-
-                        parameters = {
-                            'p_SC': beta,
-                            'p_CS': beta_ret,
-                            'p_SD': beta,
-                            'p_DS': beta_ret,
-                            'A': A,
-                            'B': B
-                        }
-
-                        initial_conditions = {
-                            'C_1': C_restock_rate,
-                            'S_1': S_restock_rate,
-                            'D_1': D_restock_rate,
-
-                            'C_2': C_restock_rate,
-                            'S_2': S_restock_rate,
-                            'D_2': D_restock_rate,
-
-                            'C_3': C_restock_rate,
-                            'S_3': S_restock_rate,
-                            'D_3': D_restock_rate,
-
-                            'C_4': C_restock_rate,
-                            'S_4': S_restock_rate,
-                            'D_4': D_restock_rate,
-
-                            'C_incoming': C_restock_rate,
-                            'S_incoming': S_restock_rate,
-                            'D_incoming': D_restock_rate,
-                        }
-
-                        model = DiscreteReligiousBeliefModel(parameters, initial_conditions, simulation_years=100)
-                        model.run_simulation()
-                        Cs.append(model.find_steady_state())
