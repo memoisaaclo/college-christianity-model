@@ -1,5 +1,6 @@
 import final_project_model
 import pprint as pp
+import numpy as np
 
 if __name__ == "__main__":
     print("info: graphing (1)")
@@ -71,6 +72,10 @@ if __name__ == "__main__":
                 'D_incoming': restock,
             }
 
-        model = final_project_model.DiscreteReligiousBeliefModel(parameters, initial_conditions, simulation_years=10)
-        model.run_simulation()
-        model.plot_results()
+            model = final_project_model.DiscreteReligiousBeliefModel(parameters, initial_conditions, simulation_years=10)
+            model.run_simulation()
+            # model.plot_results()
+            print("C percent of total age groups:")
+            print(np.sum(model.results[-1][:, final_project_model.C_IDX])/4)
+            print("difference between Y4 and Y1:")
+            print(model.results[-1][3, final_project_model.C_IDX] - model.results[-1][0, final_project_model.C_IDX])
