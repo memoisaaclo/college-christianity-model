@@ -1,3 +1,4 @@
+import pprint as pp
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -66,7 +67,7 @@ class DiscreteReligiousBeliefModel:
             D = new_state[:, D_IDX]
 
             combined_influence = A * B
-            S_to_C = S * np.dot(combined_influence, C) * p_SC
+            S_to_C = S * np.dot(combined_influence, C)
             C_to_S = C * D * S * p_CS
             S_to_D = D * S * p_SD
             D_to_S = C * D * S * p_DS
@@ -102,9 +103,9 @@ class DiscreteReligiousBeliefModel:
         plt.figure(figsize=(14, 10))
 
         plt.subplot(2, 2, 1)
-        plt.plot(years, total_C, 'b-o', label='Christian (C)')
-        plt.plot(years, total_S, 'g-o', label='Susceptible (S)')
-        plt.plot(years, total_D, 'r-o', label='Denying (D)')
+        plt.plot(years, total_C, 'b-', label='Christian (C)')
+        plt.plot(years, total_S, 'g-', label='Susceptible (S)')
+        plt.plot(years, total_D, 'r-', label='Denying (D)')
         plt.xlabel('Years')
         plt.ylabel('Population Proportion')
         plt.title('Total Population Proportions by Compartment')
@@ -118,7 +119,7 @@ class DiscreteReligiousBeliefModel:
         for c_idx, compartment in enumerate(compartments):
             plt.subplot(2, 2, c_idx + 2)
             for age in range(self.num_age_groups):
-                plt.plot(years, states[:, age, c_idx], f'{colors[age]}-o',
+                plt.plot(years, states[:, age, c_idx], f'{colors[age]}-',
                          label=f'{compartment} - Year {age + 1}')
             plt.xlabel('Years')
             plt.ylabel('Population Proportion')
@@ -146,10 +147,9 @@ class DiscreteReligiousBeliefModel:
 
 
 if __name__ == "__main__":
-    B_step = 0.025
-    beta = 0.20
-    beta_ret = 0.05
-
+    B_step = 0.1
+    beta = 0.4
+    beta_ret = beta * 2
     # for beta 0.20 and B_step 0.025 B looks like:
     # [[0.2, 0.225, 0.25, 0.275],
     #  [0.175, 0.2, 0.225, 0.25],
@@ -157,18 +157,26 @@ if __name__ == "__main__":
     #  [0.125, 0.15, 0.175, 0.2]]
     # Influence rate on i from j, B[i][j]
     B = [[round(beta + B_step*(j - i), 3) for j in range(4)] for i in range(4)]
+    print("B:")
+    pp.pprint(B)
+
+    homophily = .4
+    heterophily = round((1 - homophily) / 3, 3)
+    # for homophily .1 A looks like:
+    # [[0.1, 0.3, 0.3, 0.3],
+    #  [0.3, 0.1, 0.3, 0.3],
+    #  [0.3, 0.3, 0.1, 0.3],
+    #  [0.3, 0.3, 0.3, 0.1]]
+    A = [[homophily if i == j else heterophily for j in range(4)] for i in range(4)]
+    print("A:")
+    pp.pprint(A)
 
     parameters = {
         'p_SC': beta,
         'p_CS': beta_ret,
         'p_SD': beta,
         'p_DS': beta_ret,
-        'A': [
-            [0.5, 0.5/3, 0.5/3, 0.5/3],
-            [0.5/3, 0.5, 0.5/3, 0.5/3],
-            [0.5/3, 0.5/3, 0.5, 0.5/3],
-            [0.5/3, 0.5/3, 0.5/3, 0.5]
-        ],
+        'A': A,
         'B': B
     }
 
