@@ -253,6 +253,15 @@ if __name__ == "__main__":
                         if S_restock_rate < 0 or (A < 0).any() or (B < 0).any():
                             continue
 
+                        parameters = {
+                            'p_SC': beta,
+                            'p_CS': beta_ret,
+                            'p_SD': beta,
+                            'p_DS': beta_ret,
+                            'A': A,
+                            'B': B
+                        }
+
                         initial_conditions = {
                             'C_1': C_restock_rate,
                             'S_1': S_restock_rate,
