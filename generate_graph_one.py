@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
             model = final_project_model.DiscreteReligiousBeliefModel(parameters, initial_conditions, simulation_years=10)
             model.run_simulation()
-            # model.plot_results()
+            model.plot_results()
             print("C percent of total age groups:")
             print(np.sum(model.results[-1][:, final_project_model.C_IDX])/4)
             print("difference between Y4 and Y1:")
